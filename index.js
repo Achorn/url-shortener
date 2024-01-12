@@ -19,8 +19,12 @@ app.get("/", function (req, res) {
 });
 
 // Your first API endpoint
-app.get("/api/hello", function (req, res) {
-  res.json({ greeting: "hello API" });
+app.get("/api/shorturl/:short_url", function (req, res) {
+  //get shortened url from mongodb
+  // if no short url
+  // return json
+  //  {"error": "No short URL found for the given input"}
+  // else redirect to correct url
 });
 
 app.post(
@@ -30,8 +34,16 @@ app.post(
   //   next();
   // },
   function (req, res) {
+    //
     console.log("req body: ", req.body);
     console.log("connection from html form ");
+
+    //check to see if url is valid
+
+    // if so
+    // add to mongo db with url and id?
+
+    // return json with url and id
   }
 );
 
