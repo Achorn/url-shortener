@@ -103,7 +103,7 @@ app.post(
 );
 
 let validUrl = (urlReq) => {
-  const regexp = new RegExp("^http://www..*.com$");
+  const regexp = new RegExp("^https?://www..*.com$");
   return regexp.test(urlReq);
 };
 
