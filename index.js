@@ -14,14 +14,23 @@ mongoose
   });
 
 const shortUrlSchema = new mongoose.Schema({
-  url: { type: String, required: true },
+  url: { type: String, required: true, unique: true },
 });
-const ShorenedUrlModel = mongoose.model("ShortUrl", shortUrlSchema);
+const ShorenedUrl = mongoose.model("ShortUrl", shortUrlSchema);
 
 const cors = require("cors");
+const { hostname } = require("node:os");
 const app = express();
 
-const createAndSaveUrl = (url, done) => {};
+const createAndSaveUrl = (urlReq, done) => {
+  let newUrl = new ShorenedUrl({ url: urlReq });
+  done("err", null);
+  return;
+  newUrl.save(function (err, data) {
+    if (err) done(err);
+    done(null, data);
+  });
+};
 
 const findUrlByUrl = (url, done) => {};
 const findUrlById = (id, done) => {};
@@ -62,9 +71,12 @@ app.post(
   },
   function (req, res, next) {
     let urlReq = req.body["url"];
+    const REPLACE_REGEX = /^https?:\/\//i;
+    let hostname = urlReq.replace(REPLACE_REGEX, "");
 
-    dns.lookup(urlReq, (err, addr) => {
+    dns.lookup(hostname, (err, addr) => {
       if (err) {
+        console.log(err);
         res.json({
           error: "Invalid Hostname",
         });
@@ -74,9 +86,19 @@ app.post(
   (req, res, next) => {
     console.log("in next function");
 
-    // add to mongo db with url and id?
+    //check if exists
+    // if exists
+    // respost with data
 
-    // return json with url and id
+    // if not
+    // add to mongo db with url and id?
+    createAndSaveUrl(req.body["url"], (err, data) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("not error");
+      }
+    });
   }
 );
 
