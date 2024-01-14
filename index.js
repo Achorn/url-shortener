@@ -2,16 +2,21 @@ require("dotenv").config();
 let mongoose = require("mongoose");
 const express = require("express");
 let bodyParser = require("body-parser");
+const dns = require("node:dns");
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then((res) => {
+    console.log("mongoose state: ", mongoose.connection.readyState);
+  });
 
 const shortUrlSchema = new mongoose.Schema({
   url: { type: String, required: true },
 });
-const ShortUrlModel = mongoose.model("ShortUrl", shortUrlSchema);
+const ShorenedUrlModel = mongoose.model("ShortUrl", shortUrlSchema);
 
 const cors = require("cors");
 const app = express();
@@ -45,23 +50,40 @@ app.get("/api/shorturl/:short_url", function (req, res) {
 
 app.post(
   "/api/shorturl",
-  // function (req, res, next) {
-  //   console.log("middleware funciton");
-  //   next();
-  // },
-  function (req, res) {
-    //
-    console.log("req body: ", req.body);
-    console.log("connection from html form ");
+  function (req, res, next) {
+    let urlReq = req.body["url"];
+    if (!validUrl(urlReq)) {
+      res.json({
+        error: "Invalid URL",
+      });
+    } else {
+      next();
+    }
+  },
+  function (req, res, next) {
+    let urlReq = req.body["url"];
 
-    //check to see if url is valid
+    dns.lookup(urlReq, (err, addr) => {
+      if (err) {
+        res.json({
+          error: "Invalid Hostname",
+        });
+      } else next();
+    });
+  },
+  (req, res, next) => {
+    console.log("in next function");
 
-    // if so
     // add to mongo db with url and id?
 
     // return json with url and id
   }
 );
+
+let validUrl = (urlReq) => {
+  const regexp = new RegExp("^http://www..*.com$");
+  return regexp.test(urlReq);
+};
 
 app.listen(port, function () {
   console.log(`Listening on port ${port}`);
