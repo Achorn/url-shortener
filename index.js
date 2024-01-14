@@ -1,9 +1,25 @@
 require("dotenv").config();
+let mongoose = require("mongoose");
 const express = require("express");
 let bodyParser = require("body-parser");
 
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const shortUrlSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+});
+const ShortUrlModel = mongoose.model("ShortUrl", shortUrlSchema);
+
 const cors = require("cors");
 const app = express();
+
+const createAndSaveUrl = (url, done) => {};
+
+const findUrlByUrl = (url, done) => {};
+const findUrlById = (id, done) => {};
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
