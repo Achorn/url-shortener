@@ -2,8 +2,8 @@ require("dotenv").config();
 let mongoose = require("mongoose");
 const express = require("express");
 let bodyParser = require("body-parser");
-const dns = require("node:dns");
-
+const dns = require("dns");
+const urlparser = require("url");
 //MONGOOSE METHODS
 
 mongoose
@@ -98,31 +98,19 @@ app.get("/api/shorturl/:short_url", function (req, res) {
 
 app.post(
   "/api/shorturl",
-  // VALID URL MIDDLEWARE
-  function (req, res, next) {
-    let urlReq = req.body["url"];
-    console.log("post request: ", urlReq);
-
-    if (!validUrl(urlReq)) {
-      res.json({
-        error: "Invalid URL",
-      });
-    } else {
-      next();
-    }
-  },
-  // VALID HOSTNAME LOOKUP
   function (req, res, next) {
     console.log("looking if valid...");
     let urlReq = req.body["url"];
-    const REPLACE_REGEX = /^https?:\/\//i;
-    let hostname = urlReq.replace(REPLACE_REGEX, "");
 
-    dns.lookup(hostname, (err, addr) => {
+    dns.lookup(urlparser.parse(urlReq).hostname, (err, addr) => {
       if (err) {
         console.log(err);
         res.json({
           error: "Invalid Hostname",
+        });
+      } else if (!addr) {
+        res.json({
+          error: "Invalid URL",
         });
       } else next();
     });
@@ -146,7 +134,6 @@ app.post(
     });
   },
   //CREATE  URL
-
   (req, res) => {
     console.log("creating and saving");
     createAndSaveUrl(req.body["url"], (err, data) => {
@@ -166,7 +153,11 @@ app.post(
 );
 
 let validUrl = (urlReq) => {
-  const regexp = new RegExp("^https?://www..*.com$");
+  // const regexp = new RegExp("^https?://www..*.com$");
+  const regexp = new RegExp(
+    "(ftp|http|https)://(w+:{0,1}w*@)?(S+)(:[0-9]+)?(/|/([w#!:.?+=&%@!-/]))?"
+  );
+
   return regexp.test(urlReq);
 };
 
