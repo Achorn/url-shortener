@@ -25,21 +25,30 @@ const { hostname } = require("node:os");
 const app = express();
 
 const createAndSaveUrl = (urlReq, done) => {
+  console.log("create ", urlReq, "...");
   let newUrl = new ShortUrl({ original_url: urlReq });
   newUrl.save(function (err, data) {
     if (err) done(err);
-    done(null, data);
+    else {
+      done(null, data);
+    }
   });
 };
 
 const findUrlByUrl = (url, done) => {
-  console.log("finding url...");
+  console.log("finding url ", url, "... ");
   ShortUrl.findOne({ original_url: url }, function (err, data) {
     if (err) done(err);
     done(null, data);
   });
 };
-const findUrlById = (id, done) => {};
+const findUrlById = (id, done) => {
+  console.log("finding url by id ", id, "...");
+  ShortUrl.findOne({ _id: id }, function (err, data) {
+    if (err) done(err);
+    done(null, data);
+  });
+};
 
 // Basic Configuration
 
@@ -59,8 +68,29 @@ app.get("/", function (req, res) {
 
 // Your first API endpoint
 app.get("/api/shorturl/:short_url", function (req, res) {
+  console.log("get request");
   //get shortened url from mongodb
+  let id = req.params.short_url;
+  console.log("params: ", req.params);
+  if (id == "undefined") {
+    console.log("no id");
+    res.json({ error: "No short URL found for the given input" });
+  } else {
+    console.log("get method with id: ", id);
+    findUrlById(id, (err, data) => {
+      if (err) {
+        // res.json({ error: err });
+        res.json({ error: "No short URL found for the given input" });
+      } else if (!data)
+        res.json({ error: "No short URL found for the given input" });
+      else {
+        res.redirect(data.original_url);
+      }
+    });
+  }
+
   // if no short url
+
   // return json
   //  {"error": "No short URL found for the given input"}
   // else redirect to correct url
@@ -71,6 +101,8 @@ app.post(
   // VALID URL MIDDLEWARE
   function (req, res, next) {
     let urlReq = req.body["url"];
+    console.log("post request: ", urlReq);
+
     if (!validUrl(urlReq)) {
       res.json({
         error: "Invalid URL",
@@ -81,6 +113,7 @@ app.post(
   },
   // VALID HOSTNAME LOOKUP
   function (req, res, next) {
+    console.log("looking if valid...");
     let urlReq = req.body["url"];
     const REPLACE_REGEX = /^https?:\/\//i;
     let hostname = urlReq.replace(REPLACE_REGEX, "");
@@ -96,12 +129,15 @@ app.post(
   },
   //FIND EXISTING URL MIDDLWARE
   function (req, res, next) {
+    console.log("checking if exists");
     findUrlByUrl(req.body["url"], (err, data) => {
       if (err) {
+        console.log("error finding url");
         console.log(err);
         res.json({ err: err });
+      } else if (!data) {
+        next();
       } else {
-        if (!data) next();
         res.json({
           original_url: data.original_url,
           short_url: data._id,
@@ -109,12 +145,17 @@ app.post(
       }
     });
   },
+  //CREATE  URL
 
-  (req, res, next) => {
+  (req, res) => {
+    console.log("creating and saving");
     createAndSaveUrl(req.body["url"], (err, data) => {
       if (err) {
+        console.log(" error for some reason");
         res.json({ err: err });
       } else {
+        console.log("no error ok...");
+
         res.json({
           original_url: data.original_url,
           short_url: data._id,
