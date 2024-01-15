@@ -4,6 +4,8 @@ const express = require("express");
 let bodyParser = require("body-parser");
 const dns = require("node:dns");
 
+//MONGOOSE METHODS
+
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -14,28 +16,33 @@ mongoose
   });
 
 const shortUrlSchema = new mongoose.Schema({
-  url: { type: String, required: true, unique: true },
+  original_url: { type: String, required: true, unique: true },
 });
-const ShorenedUrl = mongoose.model("ShortUrl", shortUrlSchema);
+const ShortUrl = mongoose.model("ShortUrl", shortUrlSchema);
 
 const cors = require("cors");
 const { hostname } = require("node:os");
 const app = express();
 
 const createAndSaveUrl = (urlReq, done) => {
-  let newUrl = new ShorenedUrl({ url: urlReq });
-  done("err", null);
-  return;
+  let newUrl = new ShortUrl({ original_url: urlReq });
   newUrl.save(function (err, data) {
     if (err) done(err);
     done(null, data);
   });
 };
 
-const findUrlByUrl = (url, done) => {};
+const findUrlByUrl = (url, done) => {
+  console.log("finding url...");
+  ShortUrl.findOne({ original_url: url }, function (err, data) {
+    if (err) done(err);
+    done(null, data);
+  });
+};
 const findUrlById = (id, done) => {};
 
 // Basic Configuration
+
 const port = process.env.PORT || 3000;
 
 app.use(cors());
@@ -48,6 +55,8 @@ app.get("/", function (req, res) {
   res.sendFile(process.cwd() + "/views/index.html");
 });
 
+//EXPRESS METHODS
+
 // Your first API endpoint
 app.get("/api/shorturl/:short_url", function (req, res) {
   //get shortened url from mongodb
@@ -59,6 +68,7 @@ app.get("/api/shorturl/:short_url", function (req, res) {
 
 app.post(
   "/api/shorturl",
+  // VALID URL MIDDLEWARE
   function (req, res, next) {
     let urlReq = req.body["url"];
     if (!validUrl(urlReq)) {
@@ -69,6 +79,7 @@ app.post(
       next();
     }
   },
+  // VALID HOSTNAME LOOKUP
   function (req, res, next) {
     let urlReq = req.body["url"];
     const REPLACE_REGEX = /^https?:\/\//i;
@@ -83,20 +94,31 @@ app.post(
       } else next();
     });
   },
-  (req, res, next) => {
-    console.log("in next function");
-
-    //check if exists
-    // if exists
-    // respost with data
-
-    // if not
-    // add to mongo db with url and id?
-    createAndSaveUrl(req.body["url"], (err, data) => {
+  //FIND EXISTING URL MIDDLWARE
+  function (req, res, next) {
+    findUrlByUrl(req.body["url"], (err, data) => {
       if (err) {
         console.log(err);
+        res.json({ err: err });
       } else {
-        console.log("not error");
+        if (!data) next();
+        res.json({
+          original_url: data.original_url,
+          short_url: data._id,
+        });
+      }
+    });
+  },
+
+  (req, res, next) => {
+    createAndSaveUrl(req.body["url"], (err, data) => {
+      if (err) {
+        res.json({ err: err });
+      } else {
+        res.json({
+          original_url: data.original_url,
+          short_url: data._id,
+        });
       }
     });
   }
