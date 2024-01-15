@@ -8,8 +8,8 @@ const urlparser = require("url");
 
 mongoose
   .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    // useNewUrlParser: true,
+    // useUnifiedTopology: true,
   })
   .then((res) => {
     console.log("mongoose state: ", mongoose.connection.readyState);
@@ -27,27 +27,23 @@ const app = express();
 const createAndSaveUrl = (urlReq, done) => {
   console.log("create ", urlReq, "...");
   let newUrl = new ShortUrl({ original_url: urlReq });
-  newUrl.save(function (err, data) {
-    if (err) done(err);
-    else {
-      done(null, data);
-    }
-  });
+  newUrl
+    .save()
+    .then((data) => done(null, data))
+    .catch((err) => done(err));
 };
 
 const findUrlByUrl = (url, done) => {
   console.log("finding url ", url, "... ");
-  ShortUrl.findOne({ original_url: url }, function (err, data) {
-    if (err) done(err);
-    done(null, data);
-  });
+  ShortUrl.findOne({ original_url: url })
+    .then((data) => done(null, data))
+    .catch((err) => done(err));
 };
 const findUrlById = (id, done) => {
   console.log("finding url by id ", id, "...");
-  ShortUrl.findOne({ _id: id }, function (err, data) {
-    if (err) done(err);
-    done(null, data);
-  });
+  ShortUrl.findOne({ _id: id })
+    .then((data) => done(null, data))
+    .catch((err) => done(err));
 };
 
 // Basic Configuration
@@ -118,6 +114,7 @@ app.post(
   //FIND EXISTING URL MIDDLWARE
   function (req, res, next) {
     console.log("checking if exists");
+
     findUrlByUrl(req.body["url"], (err, data) => {
       if (err) {
         console.log("error finding url");
